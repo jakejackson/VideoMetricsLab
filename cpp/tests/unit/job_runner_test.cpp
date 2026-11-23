@@ -690,6 +690,32 @@ TEST(JobRunner, AResultShortOfTheVideosLengthsSaysTheirFramesMayBeOutOfStep) {
     EXPECT_EQ(counted, 6);  // neither counted
 }
 
+// A run's reference is counted once, not once for each test video compared
+// with it; a count cancelled is cancelled for each that asks for it.
+TEST(JobRunner, EachFileIsCountedOnce) {
+    std::map<std::string, int> asked;
+    const FrameCounter count = counting_each_file_once([&asked](const VideoInfo& video) -> std::optional<long long> {
+        ++asked[video.path.string()];
+        if (video.path == "cancelled.mkv") {
+            throw Cancelled();
+        }
+        return video.path == "reference.mkv" ? 240 : 235;
+    });
+    VideoInfo reference;
+    reference.path = "reference.mkv";
+    VideoInfo encode;
+    encode.path = "encode.mkv";
+    VideoInfo cancelled;
+    cancelled.path = "cancelled.mkv";
+    for (int time = 0; time < 3; ++time) {
+        EXPECT_EQ(count(reference), 240);
+    }
+    EXPECT_EQ(count(encode), 235);
+    EXPECT_THROW(count(cancelled), Cancelled);
+    EXPECT_THROW(count(cancelled), Cancelled);
+    EXPECT_EQ(asked, (std::map<std::string, int>{{"cancelled.mkv", 1}, {"encode.mkv", 1}, {"reference.mkv", 1}}));
+}
+
 // A video with perceptual metrics alone has a result made from its job, with
 // the perceptual task's black-bar crops and frame count.
 TEST(JobRunner, PerceptualMetricsAloneMakeAResult) {

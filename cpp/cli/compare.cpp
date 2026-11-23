@@ -2686,10 +2686,12 @@ int compare(const CompareArguments& given, const ChosenSettings& chosen, bool gp
     // frames in (frame_pairing.h): counted here, and saved with its scores.
     const bool read_whole_files =
         arguments.frame_counts ? *arguments.frame_counts == "check" : settings.check_frame_counts;
+    // One counter for them all: a reference is counted once.
+    const FrameCounter count_saved_frames = container_frame_counter(tools.ffprobe.path, cancel, read_whole_files);
     const auto count_saved = [&](TestVideo& video) {
         std::optional<FramesShort>& frames_short = video.result->frames_short;
         frames_short = count_frames_short(*frames_short, video.result->source_info, video.result->distorted_info,
-                                          container_frame_counter(tools.ffprobe.path, cancel, read_whole_files));
+                                          count_saved_frames);
         if (video.save_scores && scores.save && frames_short->counted()) {
             try {
                 store_result(cache_folder, video.result->source, video.path, video.request.recipe, *video.result,

@@ -74,11 +74,19 @@ std::string frames_short_text(const FramesShort& short_of);
 // frames the shorter length holds, and each video's count (null uncounted).
 nlohmann::ordered_json frame_pairing_json(const ComparisonResult& result);
 
+// `count`, asked once for each file (VideoInfo::path) however often it is
+// asked for it, from any thread: a run's reference is counted once, not
+// once for each test video compared with it (a film on a network drive read
+// through each time). A caller asking while another's count of that file is
+// under way waits for it, and gets its Cancelled too.
+FrameCounter counting_each_file_once(FrameCounter count);
+
 // A FrameCounter with `ffprobe`: the count a file's container states where it
 // can be trusted (trusted_frame_count), at once; with `read_whole_files`,
 // for a file that states none, its shown video packets, counted by reading
 // it through (count_shown_video_packets: minutes for a film on a network
-// drive). Nothing where it has none; Cancelled once `cancel` is.
+// drive). Nothing where it has none; Cancelled once `cancel` is. Each file
+// once (counting_each_file_once): one counter for a run.
 FrameCounter container_frame_counter(std::string ffprobe, CancelToken cancel, bool read_whole_files);
 
 }  // namespace vml

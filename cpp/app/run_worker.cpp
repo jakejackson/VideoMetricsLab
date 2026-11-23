@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <exception>
+#include <memory>
+#include <mutex>
 #include <utility>
 
 #include "vml/app_log.h"
@@ -51,9 +53,13 @@ RunWorker::RunWorker(std::vector<VmafJob> jobs, int parallel_jobs, bool gpu_metr
     };
     events.cancelled = [this] { emit cancelled(); };
     // The counts files state, always (they cost nothing); whole files read
-    // only when asked. ffprobe as the run found it (environment_, set as it starts).
-    events.count_frames = [this, read = settings_.check_frame_counts](const VideoInfo& video) {
-        return container_frame_counter(environment_.ffprobe, cancel_, read)(video);
+    // only when asked. ffprobe as the run found it (environment_, set as it
+    // starts): one counter for the run, made at the first count, so that
+    // each file is counted once (the reference not once per test video).
+    events.count_frames = [this, read = settings_.check_frame_counts, made = std::make_shared<std::once_flag>(),
+                           counter = std::make_shared<FrameCounter>()](const VideoInfo& video) {
+        std::call_once(*made, [&] { *counter = container_frame_counter(environment_.ffprobe, cancel_, read); });
+        return (*counter)(video);
     };
     scheduler_ = std::make_unique<JobScheduler>(
         std::move(jobs), parallel_jobs, std::move(events),

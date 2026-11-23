@@ -6,6 +6,9 @@
 #include <cstdlib>
 #include <exception>
 #include <future>
+#include <map>
+#include <memory>
+#include <mutex>
 #include <utility>
 
 #include "vml/app_log.h"
@@ -253,9 +256,41 @@ nlohmann::ordered_json frame_pairing_json(const ComparisonResult& result) {
             {"test_frames", nullptr}};
 }
 
+FrameCounter counting_each_file_once(FrameCounter count) {
+    struct Counts {
+        std::mutex mutex;
+        std::map<std::filesystem::path, std::shared_future<std::optional<long long>>> files;
+    };
+    return [count = std::move(count), counts = std::make_shared<Counts>()](const VideoInfo& video) {
+        std::promise<std::optional<long long>> promise;
+        std::shared_future<std::optional<long long>> answer;
+        bool mine = false;
+        {
+            const std::lock_guard lock(counts->mutex);
+            auto [file, added] = counts->files.try_emplace(video.path);
+            if (added) {
+                file->second = promise.get_future().share();
+                mine = true;
+            }
+            answer = file->second;
+        }
+        if (!mine) {
+            return answer.get();  // another's count, or its exception
+        }
+        try {
+            const std::optional<long long> counted = count(video);
+            promise.set_value(counted);
+            return counted;
+        } catch (...) {
+            promise.set_exception(std::current_exception());
+            throw;
+        }
+    };
+}
+
 FrameCounter container_frame_counter(std::string ffprobe, CancelToken cancel, bool read_whole_files) {
-    return [ffprobe = std::move(ffprobe), cancel = std::move(cancel),
-            read_whole_files](const VideoInfo& video) -> std::optional<long long> {
+    return counting_each_file_once([ffprobe = std::move(ffprobe), cancel = std::move(cancel),
+                                    read_whole_files](const VideoInfo& video) -> std::optional<long long> {
         try {
             if (const std::optional<long long> stated = trusted_frame_count(video.path, ffprobe, cancel)) {
                 return stated;
@@ -271,7 +306,7 @@ FrameCounter container_frame_counter(std::string ffprobe, CancelToken cancel, bo
                            error.what());
             return std::nullopt;
         }
-    };
+    });
 }
 
 }  // namespace vml
