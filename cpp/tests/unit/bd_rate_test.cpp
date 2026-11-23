@@ -170,6 +170,24 @@ TEST(BdRate, ReadsEncodesFromJson) {
     EXPECT_DOUBLE_EQ(run.encodes[0].kbps, expected.kbps);
     EXPECT_DOUBLE_EQ(*run.encodes[0].scores.at("vmaf"), *expected.scores.at("vmaf"));
 
+    // A bitrate that is the whole file's, soundtrack included, is warned of
+    // as for a scored video: a document's "bit_rate_of": "file", a run
+    // file's video info.
+    nlohmann::json whole_file = video;
+    whole_file["bit_rate_of"] = "file";
+    const RateTable files =
+        read_rate_file(nlohmann::json{{"format", 2}, {"videos", {video, whole_file}}}.dump(), "results.json");
+    ASSERT_EQ(files.encodes.size(), 2U);
+    EXPECT_EQ(files.encodes[0].whole_file_video, "");
+    EXPECT_EQ(files.encodes[1].whole_file_video, "park_q27.mkv");
+    EXPECT_EQ(whole_file_rate_warnings(files),
+              std::vector<std::string>{"park_q27.mkv: its bitrate is the whole file's, soundtrack included"});
+    result.distorted_info.bit_rate_whole_file = true;
+    EXPECT_EQ(read_rate_file(run_file_text(result, "baseball_q27"), "baseball_q27.metrics.json")
+                  .encodes[0]
+                  .whole_file_video,
+              "baseball_q27.mkv");
+
     // CSV as ever; and a file with nothing to go by says so, by its name.
     EXPECT_EQ(read_rate_file("sequence,kbps,vmaf\nclip,100,90\n", "a.csv").encodes.size(), 1U);
     try {
