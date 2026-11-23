@@ -100,9 +100,8 @@ SegmentRules SegmentRulesEditor::rules() const {
     SegmentRules rules;
     for (const ConditionRow& row : conditions_) {
         const std::string key = row.metric->currentData().toString().toStdString();
-        const MetricDefinition& definition = metric_definition(key);
         rules.conditions.push_back(
-            {key, definition.direction == MetricDirection::lower_is_better ? '>' : '<', row.threshold->value()});
+            {key, row.comparison->currentData().toString() == ">" ? '>' : '<', row.threshold->value()});
     }
     rules.all = combine_combo_->currentIndex() == 1;
     rules.min_frames = min_frames_spin_->value();
@@ -125,7 +124,11 @@ void SegmentRulesEditor::add_row(const WeakCondition& condition) {
         entry.metric->addItem(qt_text(metric_definition(key).label), QString::fromStdString(key));
     }
     row_layout->addWidget(entry.metric);
-    entry.comparison = new QLabel;
+    // Below for most metrics; above for Butteraugli, whose worst are its
+    // highest, or to find what is better than it need be (vmaf>98).
+    entry.comparison = new QComboBox;
+    entry.comparison->addItem(app::tr("is below"), QStringLiteral("<"));
+    entry.comparison->addItem(app::tr("is above"), QStringLiteral(">"));
     row_layout->addWidget(entry.comparison);
     entry.threshold = new QDoubleSpinBox;
     entry.threshold->setRange(-1'000'000.0, 1'000'000.0);
@@ -146,6 +149,7 @@ void SegmentRulesEditor::add_row(const WeakCondition& condition) {
         }
         edited();
     });
+    connect(entry.comparison, &QComboBox::currentIndexChanged, this, [this] { edited(); });
     connect(entry.threshold, &QDoubleSpinBox::valueChanged, this, [this] { edited(); });
     set_condition_metric(entry, condition);
     conditions_.push_back(entry);
@@ -158,9 +162,12 @@ void SegmentRulesEditor::set_condition_metric(ConditionRow& row, const WeakCondi
         const QSignalBlocker blocker(row.metric);
         row.metric->setCurrentIndex(row.metric->findData(QString::fromStdString(condition.key)));
     }
-    // As rules() reads it: by the metric's direction, whatever a saved text said.
-    row.comparison->setText(definition.direction == MetricDirection::lower_is_better ? app::tr("is above")
-                                                                                     : app::tr("is below"));
+    // As the condition says: a metric picked anew starts from its own
+    // direction (starting_condition), a saved text keeps its own.
+    {
+        const QSignalBlocker blocker(row.comparison);
+        row.comparison->setCurrentIndex(condition.comparison == '>' ? 1 : 0);
+    }
     const QSignalBlocker blocker(row.threshold);
     row.threshold->setDecimals(definition.decimals);
     // A step of about a hundredth of the scale: 1 for VMAF's 0-100, 0.01

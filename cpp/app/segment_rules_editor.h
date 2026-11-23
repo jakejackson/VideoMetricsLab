@@ -57,7 +57,7 @@ private:
     struct ConditionRow {
         QWidget* row = nullptr;
         QComboBox* metric = nullptr;
-        QLabel* comparison = nullptr;
+        QComboBox* comparison = nullptr;  // is below (<) or is above (>)
         QDoubleSpinBox* threshold = nullptr;
     };
     void add_row(const WeakCondition& condition);

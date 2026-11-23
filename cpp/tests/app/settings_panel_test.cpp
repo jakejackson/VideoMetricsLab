@@ -380,6 +380,15 @@ TEST(SettingsPanel, WeakSegmentsEditsTheProfiles) {
 // The wheel over a spin box or a combo box of the Settings tab scrolls the
 // tab: their values stay as they were, and the focus stays where it was. A
 // box elsewhere keeps the wheel.
+// A condition is edited as it was written: vmaf>98 (what is better than it
+// need be) stays above, not turned to the metric's usual "below".
+TEST(SegmentRulesEditor, KeepsEachConditionsDirection) {
+    SegmentRulesEditor editor({"vmaf", "butteraugli"}, false);
+    editor.set_rules(SegmentRules{{{"vmaf", '>', 98.0}, {"butteraugli", '>', 2.5}, {"vmaf", '<', 80.0}}});
+    EXPECT_EQ(condition_texts(editor.rules().conditions),
+              (std::vector<std::string>{"vmaf>98", "butteraugli>2.5", "vmaf<80"}));
+}
+
 TEST(SettingsPanel, TheWheelScrollsPastValueBoxes) {
     auto* window = new QWidget;
     auto* window_layout = new QVBoxLayout(window);
