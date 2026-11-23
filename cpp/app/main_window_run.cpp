@@ -371,6 +371,7 @@ std::variant<VmafJob, QString> MainWindow::job_for(const RowData& row_data) cons
 void MainWindow::begin_run(const std::vector<int>& checked, std::vector<std::shared_ptr<RowData>> job_rows,
                            long long already_scored) {
     job_rows_ = std::move(job_rows);
+    auto_export_waiting_.clear();
     checked_rows_for_run_.clear();
     for (const int row : checked) {
         checked_rows_for_run_.push_back(rows_[static_cast<std::size_t>(row)]);
@@ -1175,7 +1176,7 @@ std::optional<int> MainWindow::on_job_finished(int index, const ComparisonResult
                            run->graph_identity, !continuing});
     sync_frame_compare();
     if (final) {
-        export_automatically(row_data);  // Settings' export, when on: once its bitrate is read
+        export_when_whole(row_data);  // Settings' export, when on: once its bitrate is read
     }
     return row;
 }
@@ -1302,6 +1303,9 @@ void MainWindow::on_job_partially_failed(int index, const ComparisonResult& resu
 void MainWindow::on_job_failed(int index, const QString& message, const QString& stderr_tail) {
     ++run_failed_count_;  // first: mark_job_over shows the counts
     mark_job_over(index);
+    if (job_rows_[static_cast<std::size_t>(index)]->cvvdp_display_of) {
+        export_when_whole(*job_rows_[static_cast<std::size_t>(index)]);  // a display that failed: its video's goes
+    }
     const std::optional<int> row = row_index_of(job_rows_[static_cast<std::size_t>(index)].get());
     if (!row) {
         return;  // the row was removed during the run
@@ -1360,6 +1364,12 @@ void MainWindow::on_all_finished() {
     }
     if (defaults_changed_in_run_) {
         on_default_settings_changed();  // what Settings' defaults changed to during the run
+    }
+    // Videos whose display rows never finished (failed, cancelled): as they are.
+    for (const std::shared_ptr<RowData>& waiting : std::exchange(auto_export_waiting_, {})) {
+        if (row_index_of(waiting.get())) {
+            export_automatically(*waiting);
+        }
     }
     notify_run_end();
 }
