@@ -297,24 +297,9 @@ QWidget* SettingsPanel::build_appearance_page() {
     if (theme_buttons->checkedButton() == nullptr) {
         theme_buttons->buttons().front()->setChecked(true);  // an unknown setting: the system's
     }
-    // The accent's first choice names what no accent gives: the system's,
-    // or, in a theme with an accent of its own (Mocha's amber), the theme's.
-    const auto name_system_accent = [this, system_accent] {
-        const QAbstractButton* theme = theme_buttons->checkedButton();
-        if (theme != nullptr && theme->property("value").toString() == "mocha") {
-            system_accent->setText(app::tr("Theme default"));
-            system_accent->setToolTip(app::tr("The theme's own accent: Mocha's amber."));
-        } else {
-#ifdef __APPLE__
-            system_accent->setText(app::tr("Same as macOS"));
-#else
-            system_accent->setText(app::tr("Same as Windows"));
-#endif
-            system_accent->setToolTip(QString());
-        }
-    };
+    system_accent_button = system_accent;
     name_system_accent();
-    connect(theme_buttons, &QButtonGroup::buttonClicked, this, [this, name_system_accent] {
+    connect(theme_buttons, &QButtonGroup::buttonClicked, this, [this] {
         name_system_accent();
         on_edited();
     });
@@ -342,10 +327,31 @@ QWidget* SettingsPanel::build_appearance_page() {
     return page;
 }
 
+void SettingsPanel::name_system_accent() {
+    // The accent's first choice names what no accent gives: the system's,
+    // or, in a theme with an accent of its own (Mocha's amber), the theme's.
+    const QAbstractButton* theme = theme_buttons->checkedButton();
+    if (theme != nullptr && theme->property("value").toString() == "mocha") {
+        system_accent_button->setText(app::tr("Theme default"));
+        system_accent_button->setToolTip(app::tr("The theme's own accent: Mocha's amber."));
+    } else {
+#ifdef __APPLE__
+        system_accent_button->setText(app::tr("Same as macOS"));
+#else
+        system_accent_button->setText(app::tr("Same as Windows"));
+#endif
+        system_accent_button->setToolTip(QString());
+    }
+}
+
 void SettingsPanel::choose_theme(const QString& value) {
     for (QAbstractButton* button : theme_buttons->buttons()) {
         if (button->property("value").toString() == value) {
             button->setChecked(true);
+            // Named for it, as a click on it in Settings names it: picked from
+            // the title bar, the first choice went on saying "Same as
+            // Windows" while Mocha's amber was in use.
+            name_system_accent();
             on_edited();
             return;
         }

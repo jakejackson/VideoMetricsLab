@@ -244,6 +244,12 @@ TEST(SettingsPanel, AppearanceSavesEachChoice) {
     modes[0]->click();
     EXPECT_EQ(settings.theme, "");
     EXPECT_EQ(system->text(), system_name);
+    // Picked from the title bar's theme menu (choose_theme), named alike.
+    panel.choose_theme("mocha");
+    EXPECT_EQ(settings.theme, "mocha");
+    EXPECT_EQ(system->text(), "Theme default");
+    panel.choose_theme("light");
+    EXPECT_EQ(system->text(), system_name);
 }
 
 TEST(SettingsPanel, ExportsAreChosenOneByOne) {

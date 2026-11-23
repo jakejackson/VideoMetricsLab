@@ -25,6 +25,7 @@
 #include "vml/ffmpeg_tools.h"
 #include "vml/settings.h"
 
+class QAbstractButton;
 class QButtonGroup;
 class QCheckBox;
 class QComboBox;
@@ -169,6 +170,9 @@ public:
     QWidget* modern_preview = nullptr;
     QString accent_value;
     QButtonGroup* theme_buttons = nullptr;
+    // The accent's first choice, named for the theme ticked
+    // (name_system_accent).
+    QAbstractButton* system_accent_button = nullptr;
     // How test videos' names are shown (video_names.h), and for "ends" how
     // many characters of each end.
     QComboBox* video_names = nullptr;
@@ -292,6 +296,9 @@ private:
     void on_file_writes_idle();
     // Saves the tab, applies what is global, and tells the window.
     void on_edited();
+    // The accent's first choice named for the theme ticked: the system's
+    // accent, or the theme's own (Mocha's amber).
+    void name_system_accent();
     // Copies every control's value into the settings.
     void read_controls();
     // Applies at once what changed since `before` and is not the window's
