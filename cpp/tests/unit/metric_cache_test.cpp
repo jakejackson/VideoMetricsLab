@@ -12,8 +12,13 @@
 
 #include <gtest/gtest.h>
 
+#ifdef _WIN32
+#include <share.h>
+#endif
+
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -822,6 +827,22 @@ TEST(MetricCache, SavedComparisonsAreListedReadAndDeleted) {
     elsewhere.folder = folder / "s.mp4";  // not a folder under v2
     EXPECT_FALSE(delete_saved_comparison(cache, elsewhere));
     EXPECT_TRUE(std::filesystem::exists(folder / "s.mp4"));
+#ifdef _WIN32
+    // A comparison one of whose files is open, without leave to delete it
+    // (the tab's details reader, a lookup, an antivirus): nothing of it is
+    // deleted, and it is still listed, to be deleted again. Deleted file by
+    // file, its context.json went first, and the half left was listed by
+    // nothing and deletable by nothing.
+    {
+        const std::filesystem::path held = list[1].scores.front().file;
+        std::FILE* open = _wfsopen(held.c_str(), L"rb", _SH_DENYNO);
+        ASSERT_NE(open, nullptr);
+        EXPECT_FALSE(delete_saved_comparison(cache, list[1]));
+        EXPECT_TRUE(std::filesystem::exists(second / "context.json"));
+        EXPECT_EQ(list_saved_comparisons(cache).size(), 2U);
+        std::fclose(open);
+    }
+#endif
     EXPECT_TRUE(delete_saved_comparison(cache, list[1]));
     EXPECT_FALSE(std::filesystem::exists(second));
     list = list_saved_comparisons(cache);

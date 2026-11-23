@@ -121,8 +121,26 @@ bool delete_saved_comparison(const std::filesystem::path& base, const SavedCompa
     if (error || folder.parent_path() != v2 || !std::filesystem::exists(folder / "context.json", error)) {
         return false;
     }
-    std::filesystem::remove_all(folder, error);
-    return !error && !std::filesystem::exists(folder, error);
+    // Moved aside first, whole or not at all, then deleted: deleted where it
+    // is, file by file, a file open without leave to delete it (a details
+    // reader, a lookup, an antivirus) stopped it half-way, its context.json
+    // already gone, and what was left was listed by nothing and deletable by
+    // nothing. Moved, it is no comparison of v2's any more (none is listed
+    // two folders down); whatever of it cannot be deleted now is at the next
+    // delete.
+    const std::filesystem::path aside = v2 / ".deleted";
+    std::error_code ignored;
+    std::filesystem::remove_all(aside, ignored);  // what a delete before left
+    std::filesystem::create_directories(aside, error);
+    const std::filesystem::path moved = aside / folder.filename();
+    if (!error) {
+        std::filesystem::rename(folder, moved, error);
+    }
+    if (error) {
+        return false;  // refused (one of its files in use): nothing of it deleted
+    }
+    std::filesystem::remove_all(moved, ignored);
+    return true;
 }
 
 }  // namespace vml
