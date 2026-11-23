@@ -774,6 +774,8 @@ be gone:
 .\VideoMetricsLab-cli.exe report runs\*.metrics.json --segments saved
 ```
 
+`saved` and `report` take the settings as compare does: the app's, `--settings FILE`'s or, with `--no-settings`, the defaults. They give the saved results' folder and the weak segment profiles. `saved --cache-dir FOLDER` reads and deletes the saved results in FOLDER, as `compare --cache-dir FOLDER` saved them.
+
 `saved show` and `report` take compare's outputs: `--json`, `--csv`,
 `--frames-json`, `--run-dir`, `--worst`, `--segments` (with `saved`,
 `profile:NAME` and `preset:KEY`) and its options, `--segments-dir` and

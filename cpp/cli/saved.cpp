@@ -39,9 +39,6 @@ constexpr std::size_t show_prefix = 6;
 constexpr std::size_t delete_prefix = 12;
 
 // The saved results' folder: the settings', else the default.
-std::filesystem::path saved_folder() {
-    return Settings::load().cache_dir_path().value_or(default_cache_dir());
-}
 
 // A path as two are compared: whole, its separators the system's, in the
 // case the system ignores.
@@ -102,7 +99,8 @@ void add_to_groups(std::vector<Group>& groups, TestVideo video) {
 // the tables on standard output (or the JSON there for --json -), and the
 // files asked for. `read_from` says where the scores came from, in the JSON.
 // False when a file could not be written.
-bool report_groups(SavedArguments arguments, std::vector<Group>& groups, const std::string& read_from) {
+bool report_groups(SavedArguments arguments, const Settings& settings, std::vector<Group>& groups,
+                   const std::string& read_from) {
     CompareArguments& output = arguments.output;
     const auto message = [&output](const std::string& text) {
         if (!output.quiet) {
@@ -122,7 +120,7 @@ bool report_groups(SavedArguments arguments, std::vector<Group>& groups, const s
     }
     asked = in_metric_order(asked);
     if (output.segments_saved) {
-        take_saved_segments_of_scores(output, Settings::load(), asked, message);
+        take_saved_segments_of_scores(output, settings, asked, message);
     }
     if (const std::optional<std::string> refused = segments_refusal(output.segments, asked)) {
         throw UsageError(*refused);
@@ -296,8 +294,9 @@ Json saved_list_json(const std::vector<const SavedComparison*>& saved) {
     return json;
 }
 
-int saved(const SavedArguments& arguments) {
-    const std::filesystem::path folder = saved_folder();
+int saved(const SavedArguments& arguments, const Settings& settings) {
+    // The settings' folder, or --cache-dir's (compare's own)
+    const std::filesystem::path folder = saved_scores_use(arguments.profile, settings).folder;
     const std::vector<SavedComparison> all = list_saved_comparisons(folder);
     if (arguments.action == "list") {
         std::vector<const SavedComparison*> shown;
@@ -369,12 +368,12 @@ int saved(const SavedArguments& arguments) {
         add_to_groups(groups, video_of(std::move(loaded->first)));
     }
     if (!groups.empty()) {
-        ok = report_groups(arguments, groups, "saved results") && ok;
+        ok = report_groups(arguments, settings, groups, "saved results") && ok;
     }
     return missing ? exit_input : ok ? exit_ok : exit_failed;
 }
 
-int report(const SavedArguments& arguments) {
+int report(const SavedArguments& arguments, const Settings& settings) {
     std::vector<Group> groups;
     bool unread = false;
     // Patterns (runs\*.metrics.json) as compare finds its test videos.
@@ -392,7 +391,7 @@ int report(const SavedArguments& arguments) {
             unread = true;
         }
     }
-    const bool written = groups.empty() || report_groups(arguments, groups, "run files");
+    const bool written = groups.empty() || report_groups(arguments, settings, groups, "run files");
     return unread ? exit_input : written ? exit_ok : exit_failed;
 }
 

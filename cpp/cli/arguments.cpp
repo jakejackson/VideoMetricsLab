@@ -91,6 +91,8 @@ const char* const saved_usage = R"(usage: VideoMetricsLab-cli saved [-h] [--filt
                                  [--segment-merge-frames N]
                                  [--segments-dir FOLDER]
                                  [--segments-report FILE] [-q]
+                                 [--settings FILE | --no-settings]
+                                 [--cache-dir FOLDER]
                                  {list,show,delete} [ITEM ...]
 )";
 
@@ -102,6 +104,7 @@ const char* const report_usage = R"(usage: VideoMetricsLab-cli report [-h] [--js
                                   [--segment-merge-frames N]
                                   [--segments-dir FOLDER]
                                   [--segments-report FILE] [-q]
+                                  [--settings FILE | --no-settings]
                                   RUNFILE [RUNFILE ...]
 )";
 
@@ -549,6 +552,11 @@ options:
   --segments-report FILE
                         write every video's segments to FILE as one report
   -q, --quiet           only the results
+  --settings FILE       read the settings (the saved results' folder, the
+                        weak segment profiles) from FILE in place of the app's
+  --no-settings         every setting at its default, whatever the app's say
+  --cache-dir FOLDER    the saved results in FOLDER, in place of the
+                        settings' folder (compare --cache-dir's)
 )";
 
 const char* const report_sections = R"(
@@ -1538,6 +1546,10 @@ Parser saved_parser(SavedArguments& parsed) {
         parser.actions.push_back(std::move(action));
     }
     parser.exclusive = {{"--segments-all", "--segments-any"}};
+    add_profile_options(parser, parsed.profile, false);
+    parser.actions.push_back(option({"--cache-dir"}, [&parsed](const std::string& value) {
+        parsed.profile.cache_dir = value;
+    }));
     return parser;
 }
 
@@ -1553,6 +1565,7 @@ Parser report_parser(SavedArguments& parsed) {
         parser.actions.push_back(std::move(action));
     }
     parser.exclusive = {{"--segments-all", "--segments-any"}};
+    add_profile_options(parser, parsed.profile, false);
     return parser;
 }
 

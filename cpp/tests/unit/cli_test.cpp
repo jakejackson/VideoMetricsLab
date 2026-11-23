@@ -1018,6 +1018,16 @@ TEST(CommandLine, SettingsAndSavedScoresCanBeChosen) {
     missing.settings_file = platform::path_text(temporary / "broken.json");
     EXPECT_THROW(choose_settings(missing), SettingsUnreadable);
     EXPECT_FALSE(std::filesystem::exists(temporary / "broken.json.unreadable"));  // the file named is not touched
+
+    // saved and report take the settings too, and saved --cache-dir finds
+    // what compare --cache-dir saved; report has no saved results' folder.
+    const Arguments listed = parse_arguments(
+        {"saved", "list", "--settings", platform::path_text(temporary / "mine.json"), "--cache-dir", "x"});
+    EXPECT_EQ(listed.saved.profile.settings_file, platform::path_text(temporary / "mine.json"));
+    EXPECT_EQ(saved_scores_use(listed.saved.profile, chosen.settings).folder, std::filesystem::absolute("x"));
+    EXPECT_TRUE(parse_arguments({"report", "a.metrics.json", "--no-settings"}).saved.profile.no_settings);
+    EXPECT_THROW(parse_arguments({"report", "a.metrics.json", "--cache-dir", "x"}), UsageError);
+    EXPECT_THROW(parse_arguments({"saved", "list", "--no-cache"}), UsageError);
     std::filesystem::remove_all(temporary);
 }
 
