@@ -1139,8 +1139,17 @@ QString FrameComparePanel::concise_playback_status() const {
     const QString message = QString(video_status_).replace("distorted", "test");
     const QString separator = QString::fromUtf8(" \xC2\xB7 ");
     // Errors stay visible. A reference without a soundtrack ("audio
-    // unavailable") is not one.
-    const QString problem = message.toLower().replace("audio unavailable", "");
+    // unavailable") is not one, nor is a way of decoding that failed before
+    // the one now playing ("retry: " and its error, said in Advanced info):
+    // taken for one, the whole status, FFmpeg's error text and all, filled
+    // the line while the video played.
+    QStringList checked;
+    for (const QString& part : message.split(separator)) {
+        if (!part.startsWith(QStringLiteral("retry: "))) {
+            checked.append(part);
+        }
+    }
+    const QString problem = checked.join(separator).toLower().replace("audio unavailable", "");
     if (problem.contains("failed") || problem.contains("could not") || problem.contains("error") ||
         problem.contains("unavailable")) {
         QStringList parts;

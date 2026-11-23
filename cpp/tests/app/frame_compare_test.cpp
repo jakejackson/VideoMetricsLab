@@ -67,6 +67,11 @@ protected:
 #ifdef VML_NATIVE_PLAYBACK
     static bool plays_natively(const VideoCompareView& view) { return view.native_active(); }
 #endif
+    // The status line's playback part for the view's status `message`.
+    static QString playback_status(FrameComparePanel& panel, const QString& message) {
+        panel.on_video_status_changed(message);
+        return panel.concise_playback_status();
+    }
     static std::size_t frames_kept(const FrameComparePanel& panel) { return panel.cache_.size(); }
     static const QImage* current_image(const FrameComparePanel& panel) { return panel.current_image(); }
     static QWidget* shown_page(const FrameComparePanel& panel) { return panel.content_stack_->currentWidget(); }
@@ -344,6 +349,21 @@ TEST_F(FramePanelTest, TheLoopIsSetInSecondsOrFrames) {
     EXPECT_EQ(loop_start(48, panel->loop_after_spin->value(), 24.0), 47);  // still the one frame
     panel->loop_after_spin->setValue(0.125);
     EXPECT_EQ(panel->loop_after_frames_spin->value(), 3);
+}
+
+// A way of decoding that failed before the one playing ("retry: " and
+// FFmpeg's error, said in Advanced info) is not an error of the playback:
+// taken for one, the whole status, FFmpeg's error text and all, filled the
+// status line while the video played. An error still shows whole.
+TEST_F(FramePanelTest, ARetriedWayIsNotShownAsAnError) {
+    const auto panel = make_panel();
+    panel->set_runs({scored("encode")});
+    const QString dot = QString::fromUtf8(" \xC2\xB7 ");
+    const QString played = "Playing" + dot + "hardware decode + GPU tone mapping/RGB (host transfer)" + dot +
+                           "retry: [CUDA @ 0x1] cuExternalMemoryGetMappedMipmappedArray failed -> invalid argument";
+    EXPECT_EQ(playback_status(*panel, played).toStdString(), "Playing");
+    const QString failed = "Video 1 could not play: no such file";
+    EXPECT_EQ(playback_status(*panel, failed).toStdString(), failed.toStdString());
 }
 
 // Holding S shows the source, letting go the test video again.
