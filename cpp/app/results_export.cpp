@@ -327,7 +327,25 @@ std::vector<BundleFile> export_files(const Settings& settings, const std::vector
         // dialog and the command line take them; the rest are said.
         const BundleVideo& video = videos.front();
         std::vector<WeakCondition> left_out;
-        const SegmentRules used = scored_rules(video.result->metric_results, rules, &left_out);
+        SegmentRules used = scored_rules(video.result->metric_results, rules, &left_out);
+        if (used.conditions.empty()) {
+            // None of the profile's on this video's metrics: one on the metric
+            // Metric Graphs shows where it is scored, else on its first, as
+            // the Worst Frames tab and the command line's --segments saved
+            // start (default_weak_condition).
+            const MetricResultSet& scores = video.result->metric_results;
+            const MetricDefinition* fallback = nullptr;
+            for (const MetricDefinition& metric : metrics()) {
+                if (score_samples(scores, std::string(metric.key))) {
+                    if (fallback == nullptr || metric.key == settings.graph_metric) {
+                        fallback = &metric;
+                    }
+                }
+            }
+            if (fallback != nullptr) {
+                used.conditions = {default_weak_condition(*fallback)};
+            }
+        }
         const std::vector<WeakSegment> segments = weak_segments(*video.result, used);
         // Named after the metrics used; after the profile's where it has none.
         const std::string stem =
