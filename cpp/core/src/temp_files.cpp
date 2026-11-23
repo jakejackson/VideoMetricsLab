@@ -1,5 +1,6 @@
 #include "vml/temp_files.h"
 
+#include <algorithm>
 #include <cerrno>
 #include <charconv>
 #include <chrono>
@@ -8,6 +9,7 @@
 #include <random>
 #include <stdexcept>
 #include <system_error>
+#include <thread>
 
 #include "vml/platform/system.h"
 #include "vml/python_text.h"
@@ -22,6 +24,36 @@ constexpr std::chrono::hours kept_without_owner{7 * 24};
 // How many random names are tried before making a temporary file or folder
 // is given up.
 constexpr int name_attempts = 100;
+
+// A file open for reading elsewhere (std::ifstream's, here or in another
+// process: vml-cli, a lookup, the Saved Results tab) cannot be replaced on
+// Windows until it is closed. A read takes moments: the rename is tried
+// again, waiting a little longer each time, about 3 seconds in all.
+constexpr int replace_attempts = 12;
+
+bool refused_while_open([[maybe_unused]] const std::error_code& error) {
+#ifdef _WIN32
+    // ERROR_ACCESS_DENIED, ERROR_SHARING_VIOLATION, ERROR_LOCK_VIOLATION
+    return error.category() == std::system_category() &&
+           (error.value() == 5 || error.value() == 32 || error.value() == 33);
+#else
+    return false;
+#endif
+}
+
+// The tests' wait (set_replace_wait), else none: a sleep.
+std::function<void(int)>& replace_wait() {
+    static std::function<void(int)> wait;
+    return wait;
+}
+
+void wait_to_replace(int attempt) {
+    if (const std::function<void(int)>& wait = replace_wait()) {
+        wait(attempt);
+    } else {
+        std::this_thread::sleep_for(std::chrono::milliseconds(std::min(10 << attempt, 500)));
+    }
+}
 
 // What a temporary file or folder's name says of its owner.
 enum class Owner { none, unknown, process };
@@ -112,11 +144,20 @@ void write_file_whole(const std::filesystem::path& path, const std::function<voi
         throw failed(std::error_code(code, std::generic_category()));
     }
     std::error_code renamed;
-    std::filesystem::rename(temp, path, renamed);
+    for (int attempt = 0;; ++attempt) {
+        renamed.clear();
+        std::filesystem::rename(temp, path, renamed);
+        if (!renamed || !refused_while_open(renamed) || attempt + 1 == replace_attempts) {
+            break;
+        }
+        wait_to_replace(attempt);
+    }
     if (renamed) {
         throw failed(renamed);
     }
 }
+
+void set_replace_wait(std::function<void(int attempt)> wait) { replace_wait() = std::move(wait); }
 
 std::optional<std::filesystem::path> make_temp_folder(std::string_view prefix) {
     std::random_device random;

@@ -7,6 +7,8 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -58,6 +60,56 @@ TEST(TempFiles, WhatRunsEndedOutrightLeftIsRemovedAndNothingElse) {
     std::sort(left.begin(), left.end());
     EXPECT_EQ(left, (std::vector<std::string>{"other-program-" + gone + "-x", "vmaf_run_recent99",
                                               "vml-isolated-" + running + "-g7h8"}));
+}
+
+// #205: a save replaced its files by renaming a whole copy over them, which
+// Windows refuses while anything has the file open for reading (std::ifstream
+// does not share deletion): a lookup or the Saved Results tab reading
+// context.json while a run saved into its folder lost the whole save
+// ("[WinError 5] Access is denied"). The rename is tried again once the
+// reader is done.
+TEST(TempFiles, AFileBeingReadIsReplacedOnceItIsClosed) {
+    const test::Folder folder;
+    const std::filesystem::path path = folder / "context.json";
+    write_file_whole(path, [](std::ostream& out) { out << "old"; });
+    const auto text = [&path] {
+        std::ifstream file(path, std::ios::binary);
+        return std::string(std::istreambuf_iterator<char>(file), {});
+    };
+    const auto leftovers = [&path] {
+        int count = 0;
+        for (const auto& entry : std::filesystem::directory_iterator(path.parent_path())) {
+            count += entry.path().extension() == ".tmp" ? 1 : 0;
+        }
+        return count;
+    };
+    std::vector<int> waits;
+    auto reading = std::make_unique<std::ifstream>(path, std::ios::binary);
+    set_replace_wait([&](int attempt) {
+        waits.push_back(attempt);
+        reading.reset();  // the reader done
+    });
+    EXPECT_NO_THROW(write_file_whole(path, [](std::ostream& out) { out << "new"; }));
+    EXPECT_EQ(text(), "new");
+#ifdef _WIN32
+    EXPECT_EQ(waits, std::vector<int>{0});
+#endif
+
+    // Still open after every try: the save fails, saying why, and leaves the
+    // file as it was and no temporary file.
+    waits.clear();
+    std::ifstream held(path, std::ios::binary);
+    set_replace_wait([&waits](int attempt) { waits.push_back(attempt); });
+#ifdef _WIN32
+    EXPECT_THROW(write_file_whole(path, [](std::ostream& out) { out << "newer"; }), std::runtime_error);
+    EXPECT_EQ(waits.size(), 11U);
+    held.close();
+    EXPECT_EQ(text(), "new");
+#else
+    EXPECT_NO_THROW(write_file_whole(path, [](std::ostream& out) { out << "newer"; }));
+#endif
+    EXPECT_EQ(leftovers(), 0);
+    set_replace_wait(nullptr);
 }
 
 }  // namespace

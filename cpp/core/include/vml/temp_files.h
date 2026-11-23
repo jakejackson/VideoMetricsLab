@@ -39,7 +39,12 @@ inline constexpr std::array<std::string_view, 9> temp_prefixes{
 // once whole: a full disk or a crash leaves what was there. `write` writes to
 // the temporary file. Throws std::runtime_error saying why, as Python's OSError
 // does.
+// A file open for reading elsewhere is replaced once it is closed: the rename
+// is tried again for about 3 seconds (Windows refuses it until then).
 void write_file_whole(const std::filesystem::path& path, const std::function<void(std::ostream&)>& write);
+// For tests: how write_file_whole waits before trying a refused rename again
+// (`attempt` from 0), in place of sleeping; nothing: sleeping again.
+void set_replace_wait(std::function<void(int attempt)> wait);
 
 // `name`, one of temp_prefixes, followed by this process's id and a dash:
 // the start of a temporary file or folder name whose owner remove_leftovers
