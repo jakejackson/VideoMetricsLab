@@ -257,8 +257,10 @@ std::string segments_text(const std::vector<TestVideo>& videos, const SegmentRul
         std::vector<std::vector<std::string>> rows;
         std::vector<std::string> header{"First", "Last", "Frames", "Start", "End"};
         for (const SegmentMetric& metric : segments.front().metrics) {
-            const std::string label(metric_definition(metric.key).short_label);
-            header.push_back(label + " min");
+            const MetricDefinition& definition = metric_definition(metric.key);
+            const std::string label(definition.short_label);
+            // Named after the worst end each row gives: Butteraugli's highest.
+            header.push_back(label + (definition.direction == MetricDirection::lower_is_better ? " max" : " min"));
             header.push_back(label + " mean");
         }
         if (weak_by) {
