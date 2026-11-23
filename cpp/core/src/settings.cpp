@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <fstream>
 #include <random>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <unordered_map>
@@ -173,10 +174,21 @@ std::optional<std::string> set_if_it_fits(Settings& settings, const Field& field
     return std::nullopt;
 }
 
-// A setting the file holds in a type of its own, in the log.
+// The settings that hold a notification service's key, or a URL or header
+// with one in it (stored_secret): never written to the log.
+bool holds_a_key(const std::string& name) {
+    static const std::set<std::string> keys{"pushover_user",    "pushover_token", "discord_webhook", "gotify_token",
+                                            "ntfy_topic",       "ntfy_token",     "pushbullet_token", "slack_webhook",
+                                            "telegram_token",   "webhook_url",    "webhook_header"};
+    return keys.contains(name);
+}
+
+// A setting the file holds in a type of its own, in the log: a key's by
+// its type alone (a key typed in as a number, or a list of webhook URLs).
 void log_unfit(const std::string& name, const Json& value, const std::string& kind) {
+    const std::string held = holds_a_key(name) ? std::string("a JSON ") + value.type_name() : python_repr_of(value);
     app_log::write(app_log::Level::warning, "vml.settings",
-                   "Settings: " + name + " is " + python_repr_of(value) + ", not a " + kind + "; using its default");
+                   "Settings: " + name + " is " + held + ", not a " + kind + "; using its default");
 }
 
 }  // namespace
