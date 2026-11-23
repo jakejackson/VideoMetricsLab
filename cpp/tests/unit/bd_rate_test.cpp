@@ -75,6 +75,21 @@ TEST(BdRate, SaysWhyThereIsNone) {
     EXPECT_FALSE(bd_rate(anchor, curve({1000, 2000, 4000}, {30, 33, 33})).percent);
 }
 
+// The same encode twice (one run imported on Videos and on Metric Graphs, or
+// twice from its file): one point, not a tie, so the BD-rate is the one
+// without the copy. Two points alike only in score still tie.
+TEST(BdRate, CountsTheSameEncodeOnce) {
+    const std::vector<RatePoint> anchor = curve({1000, 2000, 4000}, {30, 33, 36});
+    const std::vector<RatePoint> test = curve({900, 1800, 3600}, {30, 33, 36});
+    const BdRateResult once = bd_rate(anchor, test);
+    const BdRateResult twice = bd_rate(anchor, curve({900, 1800, 1800, 3600}, {30, 33, 33, 36}));
+    ASSERT_TRUE(once.percent);
+    ASSERT_TRUE(twice.percent) << bd_rate_gap_text(twice.gap);
+    EXPECT_DOUBLE_EQ(*twice.percent, *once.percent);
+    EXPECT_EQ(bd_rate(anchor, curve({1000, 1000}, {30, 30})).gap, BdRateGap::too_few_points);
+    EXPECT_EQ(bd_rate(anchor, curve({1000, 1800, 1900}, {30, 33, 33})).gap, BdRateGap::tied_scores);
+}
+
 // The drawn curve: through the points at its ends and scipy's value between
 // them (printed by PchipInterpolator, as above); for lower is better, its
 // scores the real ones, highest first; none where there is no curve.

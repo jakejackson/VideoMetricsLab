@@ -28,7 +28,8 @@ struct RatePoint {
 enum class BdRateGap {
     none,
     too_few_points,  // a curve has fewer than 2 points
-    tied_scores,     // a curve's scores are not all different (fasteval: not strictly increasing)
+    tied_scores,     // a curve's scores are not all different (fasteval: not strictly increasing);
+                     // a point exactly like another (rate and score) is the same encode, counted once
     no_overlap,      // the curves' score ranges do not overlap
     bad_number,      // a rate that is not above 0, or a number that is not finite
 };

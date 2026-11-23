@@ -63,11 +63,20 @@ BdRateGap make_curve(std::span<const RatePoint> points, bool lower_is_better, Cu
     }
     std::ranges::stable_sort(sorted, {}, &RatePoint::score);
     for (std::size_t index = 0; index < sorted.size(); ++index) {
+        if (index > 0 && sorted[index].score == sorted[index - 1].score &&
+            sorted[index].kbps == sorted[index - 1].kbps) {
+            continue;  // the same encode twice (one run imported twice): one point
+        }
         if (index > 0 && sorted[index].score <= sorted[index - 1].score) {
             return BdRateGap::tied_scores;
         }
         curve.x.push_back(sorted[index].score);
         curve.y.push_back(std::log(sorted[index].kbps));
+    }
+    if (curve.x.size() < 2) {
+        curve.x.clear();
+        curve.y.clear();
+        return BdRateGap::too_few_points;
     }
     curve.slopes = pchip_slopes(curve.x, curve.y);
     return BdRateGap::none;
