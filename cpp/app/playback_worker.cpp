@@ -1,11 +1,15 @@
 #include "playback_worker.h"
 
 #include <deque>
+#include <map>
+#include <mutex>
 #include <exception>
 #include <string_view>
 #include <utility>
 
 #include "vml/ffmpeg_tools.h"
+#include "vml/frame_extract.h"
+#include "vml/platform/system.h"
 #include "vml/platform/pipe.h"
 #include "vml/platform/process.h"
 #include "vml/python_text.h"
@@ -18,6 +22,27 @@ namespace {
 // into: a worker's frames are at most three queued, three in the view's
 // history and one being read, so a few spares keep them all in use.
 constexpr std::size_t spare_frames = 4;
+
+// The ways of decoding that failed for a file without giving a frame, with
+// their error: not tried again for it while the app runs. Each start of
+// playback (a seek, a loop played again, another test video) started every
+// way again, so a way that can't work here (CUDA's interop, on some cards)
+// cost each start its failure before the frames came.
+struct FailedWays {
+    std::mutex mutex;
+    std::map<std::string, QString> errors;
+};
+
+FailedWays& failed_ways() {
+    static FailedWays ways;
+    return ways;
+}
+
+std::string way_key(const std::string& ffmpeg, const std::filesystem::path& file,
+                    const std::optional<std::string>& accel, PlaybackProcessing processing) {
+    return ffmpeg + '|' + platform::path_text(file) + '|' + accel.value_or("") + '|' +
+           std::to_string(static_cast<int>(processing));
+}
 
 // How each way of decoding is described once its first frame comes.
 QString way_of(PlaybackProcessing processing) {
@@ -173,9 +198,20 @@ void StreamDecodeWorker::run() {
     const std::optional<std::string>& accel = side_ == FrameSide::source ? plan.source : plan.distorted;
     std::vector<QString> errors;
     long long next_frame = start_frame_;
-    for (const PlaybackProcessing processing : playback_modes(accel)) {
+    const std::vector<PlaybackProcessing> modes = playback_modes(accel);
+    for (const PlaybackProcessing processing : modes) {
         if (cancelled()) {
             return;
+        }
+        // A way that failed for this file before is passed over, but for the
+        // last there is: its error still said, as when it was tried.
+        const std::string key = way_key(ffmpeg_, frame_input_path(comparison_, side_), accel, processing);
+        if (processing != modes.back()) {
+            const std::lock_guard lock(failed_ways().mutex);
+            if (const auto found = failed_ways().errors.find(key); found != failed_ways().errors.end()) {
+                errors.push_back(found->second);
+                continue;
+            }
         }
         const std::optional<Attempt> attempt = try_decoding(processing, plan, next_frame, errors);
         if (!attempt) {
@@ -194,6 +230,10 @@ void StreamDecodeWorker::run() {
         errors.push_back(!detail.isEmpty()          ? detail
                          : !attempt->error.isEmpty() ? attempt->error
                                                      : QStringLiteral("Decoder produced no frames."));
+        if (!attempt->gave_frames) {
+            const std::lock_guard lock(failed_ways().mutex);
+            failed_ways().errors[key] = errors.back();
+        }
         const std::lock_guard lock(mutex_);
         attempt_errors_ = errors;
     }
