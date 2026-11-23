@@ -21,6 +21,17 @@
 
 namespace vml::app {
 
+int threshold_decimals(double value, int usual) {
+    constexpr int most = 6;
+    for (int decimals = std::max(usual, 0); decimals < most; ++decimals) {
+        const double scale = std::pow(10.0, decimals);
+        if (std::abs(std::round(value * scale) / scale - value) <= 1e-9 * std::max(1.0, std::abs(value))) {
+            return decimals;
+        }
+    }
+    return most;
+}
+
 SegmentRulesEditor::SegmentRulesEditor(std::vector<std::string> keys, bool at_least_one, QWidget* parent)
     : QWidget(parent), keys_(std::move(keys)), at_least_one_(at_least_one) {
     auto* layout = new QVBoxLayout(this);
@@ -169,7 +180,10 @@ void SegmentRulesEditor::set_condition_metric(ConditionRow& row, const WeakCondi
         row.comparison->setCurrentIndex(condition.comparison == '>' ? 1 : 0);
     }
     const QSignalBlocker blocker(row.threshold);
-    row.threshold->setDecimals(definition.decimals);
+    // The metric's usual decimals, or more where the value has them (one
+    // written by hand, vmaf<80.125), up to 6: a box rounds what it is given,
+    // and a value rounded would be saved so at the next edit.
+    row.threshold->setDecimals(threshold_decimals(condition.threshold, definition.decimals));
     // A step of about a hundredth of the scale: 1 for VMAF's 0-100, 0.01
     // for SSIM's 0-1.
     const double magnitude = std::abs(condition.threshold);

@@ -21,6 +21,10 @@ class QVBoxLayout;
 
 namespace vml::app {
 
+// The decimals a condition's value is shown with: `usual` (the metric's),
+// or as many more as the value has, up to 6 (vmaf<80.125: 3).
+int threshold_decimals(double value, int usual);
+
 class SegmentRulesEditor : public QWidget {
     Q_OBJECT
 
