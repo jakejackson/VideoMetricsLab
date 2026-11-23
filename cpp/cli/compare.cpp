@@ -1214,6 +1214,17 @@ std::optional<std::string> gpu_refusal(const std::optional<std::string>& gpu,
     return "--gpu " + *gpu + ": no GPU here has that name. The GPUs here: " + listed + "; or auto.";
 }
 
+std::optional<std::string> chosen_gpu_problem(const std::optional<std::string>& gpu, bool from_settings,
+                                              const std::vector<platform::GpuAdapter>& adapters) {
+    const std::optional<std::string> refused = gpu_refusal(gpu, adapters);
+    if (!refused) {
+        return std::nullopt;
+    }
+    const std::string why = refused->substr(("--gpu " + *gpu + ": ").size());
+    return std::string(from_settings ? "The GPU the settings choose, " : "The GPU VML_GPU chooses, ") + *gpu +
+           ": " + why + " No GPU is used for the GPU metrics: choose one with --gpu.";
+}
+
 std::optional<std::string> difference_refusal(std::size_t test_count) {
     if (test_count == 2) {
         return std::nullopt;
@@ -2517,6 +2528,12 @@ int compare(const CompareArguments& given, const ChosenSettings& chosen, bool gp
     if (const std::optional<std::string> refused = gpu_refusal(arguments.gpu, platform::gpu_adapters())) {
         print_error(*refused);
         return exit_usage;
+    }
+    if (!arguments.gpu) {
+        if (const std::optional<std::string> problem =
+                chosen_gpu_problem(chosen_gpu(), gpu_from_settings, platform::gpu_adapters())) {
+            progress->problem(*problem);
+        }
     }
     if (arguments.black_bars_given && (arguments.source_crop || arguments.test_crop)) {
         print_error("--black-bars cannot be given with --source-crop or --test-crop: the crops given are cut, and no "
