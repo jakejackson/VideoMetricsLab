@@ -114,6 +114,9 @@ struct FrameFiles {
     std::string stem;
     bool json = false;
     bool csv = false;
+    // Above 0: its worst frames of that many dips (worst_frames_report),
+    // not its per-frame scores: as slow to make, for a long film.
+    std::size_t worst_dips = 0;
 };
 // `files`, then each of `frames`' files, made now.
 std::vector<BundleFile> made_files(std::vector<BundleFile> files, const std::vector<FrameFiles>& frames);

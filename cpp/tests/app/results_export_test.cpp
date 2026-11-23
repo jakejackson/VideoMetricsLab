@@ -183,9 +183,9 @@ TEST(ResultsExport, FilesAreWrittenInTheFormatsTicked) {
     using Names = std::vector<std::string>;
     const std::string suffix = segments_file_suffix(rules);
     settings.export_formats = {"json"};
-    EXPECT_EQ(names(one, false), (Names{"a - results.json", "a - worst frames.json", "a." + suffix + ".json"}));
+    EXPECT_EQ(names(one, false), (Names{"a - results.json", "a." + suffix + ".json"}));
     settings.export_formats = {"csv"};
-    EXPECT_EQ(names(one, false), (Names{"a - results.csv", "a - worst frames.csv", "a." + suffix + ".csv"}));
+    EXPECT_EQ(names(one, false), (Names{"a - results.csv", "a." + suffix + ".csv"}));
     settings.export_formats = {"json", "csv"};
     settings.export_items = {"weak_segments"};
     EXPECT_EQ(names({one[0], {result, QStringLiteral("b"), "b.mkv"}}, true),
@@ -204,10 +204,22 @@ TEST(ResultsExport, FilesAreWrittenInTheFormatsTicked) {
     EXPECT_EQ(made_names, (Names{"x.json", "a - frames.json", "a - frames.csv", "b - frames.json", "b - frames.csv"}));
     EXPECT_EQ(made[1].second, per_frame_json(*result));
     EXPECT_EQ(made[2].second, per_frame_csv(*result));
-    // Worst frames: a file for each video, every metric's.
+    // Worst frames: a file for each video, every metric's, also made only as
+    // they are written: each metric's sorts every frame, a tenth of a second
+    // for a 2-hour film's six metrics, which held the window up for each video.
     settings.export_items = {"worst_frames"};
-    EXPECT_EQ(names({one[0], {result, QStringLiteral("b"), "b.mkv"}}, true),
+    EXPECT_EQ(names({one[0], {result, QStringLiteral("b"), "b.mkv"}}, true), Names{});
+    ASSERT_EQ(frames.size(), 2U);
+    const std::vector<BundleFile> worst = made_files({}, frames);
+    Names worst_names;
+    for (const BundleFile& file : worst) {
+        worst_names.push_back(file.first);
+    }
+    EXPECT_EQ(worst_names,
               (Names{"a - worst frames.json", "a - worst frames.csv", "b - worst frames.json", "b - worst frames.csv"}));
+    const std::size_t dips = static_cast<std::size_t>(settings.graph_worst_frames);
+    EXPECT_EQ(worst[0].second, python_json_dumps(worst_frames_report_json(result->metric_results, dips)) + "\n");
+    EXPECT_EQ(worst[1].second, text_lines(worst_frames_report_csv(result->metric_results, dips)));
     settings.export_items = export_item_keys();
     settings.export_formats.clear();
     EXPECT_EQ(names(one, false), Names{});
@@ -307,3 +319,4 @@ TEST(ResultsExport, WeakSegmentsLeaveOutAMetricNotScored) {
 
 }  // namespace
 }  // namespace vml::app
+

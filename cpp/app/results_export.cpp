@@ -241,6 +241,17 @@ std::string text_lines(const std::string& text) {
 
 std::vector<BundleFile> made_files(std::vector<BundleFile> files, const std::vector<FrameFiles>& frames) {
     for (const FrameFiles& video : frames) {
+        if (video.worst_dips > 0) {
+            WorstFramesReport report =
+                worst_frames_report(video.result->metric_results, video.worst_dips, video.json, video.csv);
+            if (report.json) {
+                files.emplace_back(video.stem + ".json", python_json_dumps(*report.json) + "\n");
+            }
+            if (report.csv) {
+                files.emplace_back(video.stem + ".csv", text_lines(*report.csv));
+            }
+            continue;
+        }
         PerFrameTexts texts = per_frame_texts(*video.result, video.csv, video.json);
         if (video.json) {
             files.emplace_back(video.stem + ".json", std::move(texts.json));
@@ -290,15 +301,12 @@ std::vector<BundleFile> export_files(const Settings& settings, const std::vector
         // Each video's, every metric's dips, as many as Worst Frames lists.
         const std::vector<QString> names = bundle_names(videos);
         const auto dips = static_cast<std::size_t>(std::max(settings.graph_worst_frames, 1));
+        // Made as they are written (made_files, in the file-write job), as
+        // the per-frame scores are: for a 2-hour film each metric's worst
+        // frames sort all its frames, not on the window's thread.
         for (std::size_t i = 0; i < videos.size(); ++i) {
-            const std::string stem = file_safe(names[i] + QStringLiteral(" - worst frames")).toStdString();
-            const MetricResultSet& results = videos[i].result->metric_results;
-            if (json) {
-                files.push_back({stem + ".json", python_json_dumps(worst_frames_report_json(results, dips)) + "\n"});
-            }
-            if (csv) {
-                files.push_back({stem + ".csv", text_lines(worst_frames_report_csv(results, dips))});
-            }
+            frames.push_back({videos[i].result, file_safe(names[i] + QStringLiteral(" - worst frames")).toStdString(),
+                              json, csv, dips});
         }
     }
     if (!wanted("weak_segments") || videos.empty()) {
