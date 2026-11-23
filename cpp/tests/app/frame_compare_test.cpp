@@ -48,9 +48,37 @@
 
 namespace vml::app {
 
+namespace {
+
+// A decoder that gives no frames and ends at once: playback with FFmpeg,
+// without FFmpeg.
+class IdleDecoder : public PlaybackDecoder {
+public:
+    explicit IdleDecoder(QObject* parent) : PlaybackDecoder(parent) {}
+    ~IdleDecoder() override { wait(); }
+    void cancel() override {}
+    std::vector<PlaybackFrame> drain_through(long long /*frame*/) override { return {}; }
+    void recycle(FramePixels /*pixels*/) override {}
+    std::optional<long long> latest_frame_number() const override { return std::nullopt; }
+
+protected:
+    void run() override {}
+};
+
+}  // namespace
+
 // The panel's parts, for its tests.
 class FramePanelTest : public ::testing::Test {
 protected:
+    // The panel's playback view, made now, its decoders stand-ins.
+    static VideoCompareView& idle_view(FrameComparePanel& panel) {
+        VideoCompareView& view = panel.ensure_video_view();
+        view.make_decoder = [](const FrameComparison&, FrameSide, long long, const PreviewColorSettings&,
+                               std::optional<Size>, QObject* parent) -> PlaybackDecoder* {
+            return new IdleDecoder(parent);
+        };
+        return view;
+    }
     static bool showing_source(const FrameComparePanel& panel) { return panel.showing_source_; }
     static Zoom& zoom(FrameComparePanel& panel) { return panel.zoom_; }
     static void cache_frame(FrameComparePanel& panel, FrameSide side, const QImage& image) {
@@ -316,6 +344,28 @@ TEST_F(FramePanelTest, LoopIsKeptAsItWasLeft) {
     ASSERT_EQ(settings.save_to(folder / "settings.json"), std::nullopt);
     EXPECT_TRUE(Settings::load_from(folder / "settings.json").compare_loop);
     EXPECT_FALSE(Settings{}.compare_loop);  // off until ticked
+}
+
+// Loop ticked at the video's last frame, shown: playback stopped there
+// plays the loop again (restart_loop_at_end), and its jump back, played with
+// FFmpeg as here, says at once that playback is stopped, which called it
+// again, and again, until the stack ran out (the window closed). Now the
+// loop starts again once.
+TEST_F(FramePanelTest, LoopingAtTheLastFrameStartsTheLoopOnce) {
+    // Played with FFmpeg (the unmanaged preview), its decoders stand-ins.
+    const auto panel = std::make_unique<FrameComparePanel>([] { return std::string("ffmpeg"); },
+                                                           PreviewColorMode::unmanaged, 3);
+    idle_view(*panel);
+    const test::Folder folder;
+    panel->set_runs({tagged(folder, "bt709", "bt709")});  // a pair that plays, frames 0 to 119
+    panel->set_loop_seconds(1.0, 1.0);
+    panel->set_loop_on(true);
+    panel->set_frame(119);
+    panel->resize(1400, 900);
+    panel->show();  // stopped at the last frame: the loop plays again, once
+    QCoreApplication::processEvents();
+    EXPECT_TRUE(panel->loop_checkbox->isChecked());
+    EXPECT_TRUE(panel->video_view->playback_requested());  // the loop playing
 }
 
 // The loop's seconds are to the millisecond, and beside each its frames at
