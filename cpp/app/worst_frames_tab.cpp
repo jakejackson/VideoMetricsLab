@@ -443,6 +443,7 @@ QWidget* WorstFramesTab::build_lists() {
             count_ = count_combo_->itemData(index).toInt();
             fill_worst();
             refresh_chart();
+            show_details();  // the list made again: a row selected is gone
             emit count_changed(count_);
         }
     });
@@ -621,6 +622,7 @@ void WorstFramesTab::set_worst_count(int count) {
     count_ = worst_frame_counts[static_cast<std::size_t>(index)];
     fill_worst();
     refresh_chart();
+    show_details();  // the list made again: a row selected is gone
 }
 
 // ---------------------------------------------------------------- choosing
