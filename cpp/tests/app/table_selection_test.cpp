@@ -3,7 +3,12 @@
 // called as the window adds test videos).
 #include <QColor>
 #include <QCoreApplication>
+#include <QDir>
+#include <QGuiApplication>
 #include <QImage>
+#include <QPainter>
+#include <QStyle>
+#include <QStyleOptionViewItem>
 #include <QDropEvent>
 #include <QFileInfo>
 #include <QHeaderView>
@@ -19,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstdio>
 #include <cstdlib>
 #include <vector>
 
@@ -351,6 +357,83 @@ TEST(TableSelection, FrozenColumnsLetTheTableScrollWithoutRepaintingIt) {
     EXPECT_EQ(heading->mapToGlobal(QPoint()),
               QPoint(frozen->mapToGlobal(QPoint()).x(), header->mapToGlobal(QPoint()).y()));
     EXPECT_EQ(heading->size(), QSize(frozen->width(), header->height()));
+}
+
+// DIAGNOSTIC for #216, not to land: what ASelectedRowKeepsItsBestAndWorstColours
+// reads, printed, and its grabs saved as PNGs, to see on macOS why the
+// marked cell's middle and top edge are off. It always passes.
+QString hex(const QColor& colour) {
+    return colour.name(QColor::HexArgb);
+}
+
+TEST(TableSelection, Diagnostic216) {
+    QTableWidget table(1, 2);
+    table.setSelectionBehavior(QAbstractItemView::SelectRows);
+    table.setItemDelegate(new MarkedCellDelegate(&table));
+    const QColor green(0, 160, 0);
+    table.setItem(0, 0, new QTableWidgetItem);
+    table.setItem(0, 1, new QTableWidgetItem);
+    table.item(0, 0)->setData(Qt::BackgroundRole, green);
+    table.item(0, 1)->setData(Qt::BackgroundRole, QColor(0, 0, 0, 0));
+    table.resize(400, 200);
+    table.show();
+    QCoreApplication::processEvents();
+    const QImage unselected = table.viewport()->grab().toImage();
+    table.selectRow(0);
+    QCoreApplication::processEvents();
+    const QImage shot = table.viewport()->grab().toImage();
+    const QRect cell = table.visualRect(table.model()->index(0, 0));
+    const QRect plain = table.visualRect(table.model()->index(0, 1));
+    const QString folder = QDir::current().absolutePath();
+    unselected.save(folder + QStringLiteral("/diag216-unselected.png"));
+    shot.save(folder + QStringLiteral("/diag216-selected.png"));
+
+    // The band's colour as the delegate's probe makes it.
+    QStyleOptionViewItem blank;
+    blank.initFrom(table.viewport());
+    blank.state |= QStyle::State_Selected | QStyle::State_Enabled | QStyle::State_Active;
+    blank.rect = QRect(0, 0, 8, 8);
+    blank.widget = &table;
+    QImage probe(8, 8, QImage::Format_ARGB32_Premultiplied);
+    probe.fill(blank.palette.color(QPalette::Active, QPalette::Base));
+    {
+        QPainter painter(&probe);
+        table.style()->drawPrimitive(QStyle::PE_PanelItemViewRow, &blank, &painter, &table);
+        table.style()->drawControl(QStyle::CE_ItemViewItem, &blank, &painter, &table);
+    }
+
+    std::printf("DIAG216 platform %s, style %s, grab %dx%d at ratio %.2f, viewport %dx%d\n",
+                qPrintable(QGuiApplication::platformName()), qPrintable(table.style()->name()), shot.width(),
+                shot.height(), shot.devicePixelRatio(), table.viewport()->width(), table.viewport()->height());
+    std::printf("DIAG216 cell (%d,%d %dx%d), plain (%d,%d %dx%d)\n", cell.x(), cell.y(), cell.width(),
+                cell.height(), plain.x(), plain.y(), plain.width(), plain.height());
+    std::printf("DIAG216 palette highlight %s, base %s, alternate %s\n",
+                qPrintable(hex(table.palette().color(QPalette::Active, QPalette::Highlight))),
+                qPrintable(hex(table.palette().color(QPalette::Active, QPalette::Base))),
+                qPrintable(hex(table.palette().color(QPalette::Active, QPalette::AlternateBase))));
+    std::printf("DIAG216 middle %s (unselected %s), edge %s, plain selected %s, probe band %s\n",
+                qPrintable(hex(shot.pixelColor(cell.right() - 3, cell.center().y()))),
+                qPrintable(hex(unselected.pixelColor(cell.right() - 3, cell.center().y()))),
+                qPrintable(hex(shot.pixelColor(cell.right() - 3, cell.top()))),
+                qPrintable(hex(shot.pixelColor(plain.center()))), qPrintable(hex(probe.pixelColor(4, 4))));
+    // Down the marked cell's column the test reads, a line per run of one colour.
+    for (const int x : {cell.left() + 2, cell.right() - 3}) {
+        QString runs;
+        QColor last;
+        int from = 0;
+        for (int y = 0; y <= std::min(shot.height() - 1, cell.bottom() + 3); ++y) {
+            const QColor here = shot.pixelColor(x, y);
+            if (y > 0 && here != last) {
+                runs += QStringLiteral(" %1-%2:%3").arg(from).arg(y - 1).arg(hex(last));
+                from = y;
+            }
+            last = here;
+        }
+        runs += QStringLiteral(" %1-end:%2").arg(from).arg(hex(last));
+        std::printf("DIAG216 column x=%d:%s\n", x, qPrintable(runs));
+    }
+    std::printf("DIAG216 saved %s/diag216-unselected.png and diag216-selected.png\n", qPrintable(folder));
+    std::fflush(stdout);
 }
 
 }  // namespace
