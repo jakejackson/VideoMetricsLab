@@ -1481,7 +1481,11 @@
   "Ready": "جاهز",
   "Ready: no test videos ticked.": "جاهز: لا توجد فيديوهات اختبار محددة.",
   "Ready: {videos}, {metrics}.": "جاهز: {videos}، {metrics}.",
-  "{low} to {high} metrics": "من {low} إلى {high} مقاييس"
+  "{low} to {high} metrics": "من {low} إلى {high} مقاييس",
+  "Rebuild index": "إعادة بناء الفهرس",
+  "Reading the saved results' folders...": "جارٍ قراءة مجلدات النتائج المحفوظة...",
+  "Reads every saved comparison's folder again into the index they are listed from. Only needed after another program, such as an older version of this app, changed them.": "يقرأ مجلد كل مقارنة محفوظة من جديد إلى الفهرس الذي تُعرض منه. لا حاجة إليه إلا بعد أن يغيّرها برنامج آخر، مثل إصدار أقدم من هذا التطبيق.",
+  "The index could not be made in this folder; the saved results are read from their folders.": "تعذّر إنشاء الفهرس في هذا المجلد؛ تُقرأ النتائج المحفوظة من مجلداتها."
  },
  "plurals": {
   "Deleted the saved scores of {count} comparison.": [
@@ -1786,6 +1790,7 @@
   "Click to open the Videos tab: the failed video's row says more.": ["انقر لفتح علامة التبويب الفيديو: صفوف الفيديوهات الفاشلة توضح المزيد.", "انقر لفتح علامة التبويب الفيديو: صف الفيديو الفاشل يوضح المزيد.", "انقر لفتح علامة التبويب الفيديو: صفوف الفيديوهات الفاشلة توضح المزيد.", "انقر لفتح علامة التبويب الفيديو: صفوف الفيديوهات الفاشلة توضح المزيد.", "انقر لفتح علامة التبويب الفيديو: صفوف الفيديوهات الفاشلة توضح المزيد.", "انقر لفتح علامة التبويب الفيديو: صفوف الفيديوهات الفاشلة توضح المزيد."],
   "{count} metric": ["{count} مقياس", "{count} مقياس", "{count} مقياسان", "{count} مقاييس", "{count} مقياسًا", "{count} مقياس"],
   "{count} metric each": ["{count} مقياس لكل فيديو", "{count} مقياس لكل فيديو", "{count} مقياسان لكل فيديو", "{count} مقاييس لكل فيديو", "{count} مقياسًا لكل فيديو", "{count} مقياس لكل فيديو"],
-  "{count} test video ticked": ["{count} فيديو اختبار محدد", "{count} فيديو اختبار محدد", "{count} فيديوا اختبار محددان", "{count} فيديوهات اختبار محددة", "{count} فيديو اختبار محددًا", "{count} فيديو اختبار محدد"]
+  "{count} test video ticked": ["{count} فيديو اختبار محدد", "{count} فيديو اختبار محدد", "{count} فيديوا اختبار محددان", "{count} فيديوهات اختبار محددة", "{count} فيديو اختبار محددًا", "{count} فيديو اختبار محدد"],
+  "Read {count} saved comparison into the index.": ["قُرئت {count} مقارنة محفوظة إلى الفهرس.", "قُرئت {count} مقارنة محفوظة إلى الفهرس.", "قُرئت {count} مقارنة محفوظة إلى الفهرس.", "قُرئت {count} مقارنات محفوظة إلى الفهرس.", "قُرئت {count} مقارنة محفوظة إلى الفهرس.", "قُرئت {count} مقارنة محفوظة إلى الفهرس."]
  }
 }

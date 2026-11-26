@@ -1481,7 +1481,11 @@
   "Ready": "Sẵn sàng",
   "Ready: no test videos ticked.": "Sẵn sàng: chưa đánh dấu video thử nào.",
   "Ready: {videos}, {metrics}.": "Sẵn sàng: {videos}, {metrics}.",
-  "{low} to {high} metrics": "{low} đến {high} chỉ số"
+  "{low} to {high} metrics": "{low} đến {high} chỉ số",
+  "Rebuild index": "Dựng lại chỉ mục",
+  "Reading the saved results' folders...": "Đang đọc các thư mục kết quả đã lưu...",
+  "Reads every saved comparison's folder again into the index they are listed from. Only needed after another program, such as an older version of this app, changed them.": "Đọc lại thư mục của từng phép so sánh đã lưu vào chỉ mục dùng để liệt kê chúng. Chỉ cần sau khi một chương trình khác, như phiên bản cũ của ứng dụng này, đã thay đổi chúng.",
+  "The index could not be made in this folder; the saved results are read from their folders.": "Không thể tạo chỉ mục trong thư mục này; kết quả đã lưu được đọc từ thư mục của chúng."
  },
  "plurals": {
   "Deleted the saved scores of {count} comparison.": [
@@ -1606,6 +1610,7 @@
   "Click to open the Videos tab: the failed video's row says more.": ["Nhấp để mở tab Video: hàng của video lỗi cho biết thêm."],
   "{count} metric": ["{count} chỉ số"],
   "{count} metric each": ["mỗi video {count} chỉ số"],
-  "{count} test video ticked": ["{count} video thử được đánh dấu"]
+  "{count} test video ticked": ["{count} video thử được đánh dấu"],
+  "Read {count} saved comparison into the index.": ["Đã đọc {count} phép so sánh đã lưu vào chỉ mục."]
  }
 }

@@ -1481,7 +1481,11 @@
   "Ready": "Hazır",
   "Ready: no test videos ticked.": "Hazır: işaretli test videosu yok.",
   "Ready: {videos}, {metrics}.": "Hazır: {videos}, {metrics}.",
-  "{low} to {high} metrics": "{low} ile {high} arası metrik"
+  "{low} to {high} metrics": "{low} ile {high} arası metrik",
+  "Rebuild index": "Dizini yeniden oluştur",
+  "Reading the saved results' folders...": "Kaydedilen sonuçların klasörleri okunuyor...",
+  "Reads every saved comparison's folder again into the index they are listed from. Only needed after another program, such as an older version of this app, changed them.": "Kaydedilen her karşılaştırmanın klasörünü, listelendikleri dizine yeniden okur. Yalnızca başka bir program, örneğin bu uygulamanın eski bir sürümü, onları değiştirdikten sonra gerekir.",
+  "The index could not be made in this folder; the saved results are read from their folders.": "Bu klasörde dizin oluşturulamıyor; kaydedilen sonuçlar kendi klasörlerinden okunuyor."
  },
  "plurals": {
   "Deleted the saved scores of {count} comparison.": [
@@ -1642,6 +1646,7 @@
   "Click to open the Videos tab: the failed video's row says more.": ["Videolar sekmesini açmak için tıklayın: başarısız videonun satırında ayrıntılar var.", "Videolar sekmesini açmak için tıklayın: başarısız videoların satırlarında ayrıntılar var."],
   "{count} metric": ["{count} metrik", "{count} metrik"],
   "{count} metric each": ["her birinde {count} metrik", "her birinde {count} metrik"],
-  "{count} test video ticked": ["{count} test videosu işaretli", "{count} test videosu işaretli"]
+  "{count} test video ticked": ["{count} test videosu işaretli", "{count} test videosu işaretli"],
+  "Read {count} saved comparison into the index.": ["{count} kayıtlı karşılaştırma dizine okundu.", "{count} kayıtlı karşılaştırma dizine okundu."]
  }
 }

@@ -1481,7 +1481,11 @@
   "Ready": "就绪",
   "Ready: no test videos ticked.": "就绪：未勾选测试视频。",
   "Ready: {videos}, {metrics}.": "就绪：{videos}，{metrics}。",
-  "{low} to {high} metrics": "{low} 到 {high} 个指标"
+  "{low} to {high} metrics": "{low} 到 {high} 个指标",
+  "Rebuild index": "重建索引",
+  "Reading the saved results' folders...": "正在读取已保存的结果的文件夹...",
+  "Reads every saved comparison's folder again into the index they are listed from. Only needed after another program, such as an older version of this app, changed them.": "将每个已保存比较的文件夹重新读入用于列出它们的索引。仅在其他程序（例如本应用的旧版本）更改了它们之后才需要。",
+  "The index could not be made in this folder; the saved results are read from their folders.": "无法在此文件夹中创建索引；已保存的结果将从各自的文件夹读取。"
  },
  "plurals": {
   "Deleted the saved scores of {count} comparison.": [
@@ -1606,6 +1610,7 @@
   "Click to open the Videos tab: the failed video's row says more.": ["单击打开“视频”选项卡：失败视频的行中有更多信息。"],
   "{count} metric": ["{count} 个指标"],
   "{count} metric each": ["每个 {count} 个指标"],
-  "{count} test video ticked": ["已勾选 {count} 个测试视频"]
+  "{count} test video ticked": ["已勾选 {count} 个测试视频"],
+  "Read {count} saved comparison into the index.": ["已将 {count} 个已保存的比较读入索引。"]
  }
 }

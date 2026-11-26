@@ -1481,7 +1481,11 @@
   "Ready": "Připraveno",
   "Ready: no test videos ticked.": "Připraveno: nejsou zaškrtnuta žádná testovací videa.",
   "Ready: {videos}, {metrics}.": "Připraveno: {videos}, {metrics}.",
-  "{low} to {high} metrics": "{low} až {high} metrik"
+  "{low} to {high} metrics": "{low} až {high} metrik",
+  "Rebuild index": "Znovu sestavit index",
+  "Reading the saved results' folders...": "Čtení složek uložených výsledků...",
+  "Reads every saved comparison's folder again into the index they are listed from. Only needed after another program, such as an older version of this app, changed them.": "Znovu načte složku každého uloženého porovnání do indexu, ze kterého se vypisují. Je potřeba jen poté, co je změnil jiný program, například starší verze této aplikace.",
+  "The index could not be made in this folder; the saved results are read from their folders.": "Index v této složce nelze vytvořit; uložené výsledky se čtou z jejich složek."
  },
  "plurals": {
   "Deleted the saved scores of {count} comparison.": [
@@ -1678,6 +1682,7 @@
   "Click to open the Videos tab: the failed video's row says more.": ["Kliknutím otevřete kartu Videa: více řekne řádek videa, které selhalo.", "Kliknutím otevřete kartu Videa: více řeknou řádky videí, která selhala.", "Kliknutím otevřete kartu Videa: více řeknou řádky videí, která selhala."],
   "{count} metric": ["{count} metrika", "{count} metriky", "{count} metrik"],
   "{count} metric each": ["{count} metrika u každého", "{count} metriky u každého", "{count} metrik u každého"],
-  "{count} test video ticked": ["{count} zaškrtnuté testovací video", "{count} zaškrtnutá testovací videa", "{count} zaškrtnutých testovacích videí"]
+  "{count} test video ticked": ["{count} zaškrtnuté testovací video", "{count} zaškrtnutá testovací videa", "{count} zaškrtnutých testovacích videí"],
+  "Read {count} saved comparison into the index.": ["Do indexu načteno {count} uložené porovnání.", "Do indexu načtena {count} uložená porovnání.", "Do indexu načteno {count} uložených porovnání."]
  }
 }
